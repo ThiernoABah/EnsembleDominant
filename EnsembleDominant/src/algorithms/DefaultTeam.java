@@ -66,14 +66,15 @@ public class DefaultTeam {
 			System.out.println("PAS BON");
 			return null;
 		}
-//		y /= separateurX.size();
-//		ArrayList<Point> separateurY = new ArrayList<>();
-//		for (int i = 0; i < points.size(); i++) {
-//			Point courant = points.get(i);
-//			if (y - edgeThreshold / 2 <= courant.y && courant.y <= y + edgeThreshold / 2) {
-//				separateurY.add(courant);
-//			}
-//		}
+		// y /= separateurX.size();
+		// ArrayList<Point> separateurY = new ArrayList<>();
+		// for (int i = 0; i < points.size(); i++) {
+		// Point courant = points.get(i);
+		// if (y - edgeThreshold / 2 <= courant.y && courant.y <= y + edgeThreshold / 2)
+		// {
+		// separateurY.add(courant);
+		// }
+		// }
 
 		Point sep1 = null;
 		Point sep2 = null;
@@ -120,13 +121,12 @@ public class DefaultTeam {
 			clone.remove(separateurY.get(0));
 			clone.removeAll(neighbor(separateurY.get(0), clone, edgeThreshold));
 			ArrayList<Point> res = separateur(clone, edgeThreshold);
-			if(res == null) {
+			if (res == null) {
 				return new ArrayList<Point>();
-			}
-			else {
+			} else {
 				resFinal.addAll(res);
 			}
-			
+
 		}
 
 		// if (sep1 != null && sep2 != null) {
@@ -155,6 +155,91 @@ public class DefaultTeam {
 		// }
 		// }
 		return resFinal;
+	}
+
+	public ArrayList<Point> separateurTest(ArrayList<Point> points, int edgeThreshold) {
+		int x = 0;
+		int y = 0;
+
+		ArrayList<Point> resFinal = new ArrayList<>();
+		ArrayList<Point> clone = (ArrayList<Point>) points.clone();
+
+		for (int i = 0; i < points.size(); i++) {
+			Point courant = points.get(i);
+			x += courant.x;
+		}
+		x /= points.size();
+
+		ArrayList<Point> separateurX = new ArrayList<>();
+		for (int i = 0; i < points.size(); i++) {
+			Point courant = points.get(i);
+			if (x - edgeThreshold / 2 <= courant.x && courant.x <= x + edgeThreshold / 2) {
+				separateurX.add(courant);
+				y += courant.y;
+			}
+		}
+		if (separateurX.size() <= 0) {
+			System.out.println("PAS BON");
+			return null;
+		}
+
+		y /= separateurX.size();
+		ArrayList<Point> separateurY = new ArrayList<>();
+		for (int i = 0; i < points.size(); i++) {
+			Point courant = points.get(i);
+			if (y - edgeThreshold / 2 <= courant.y && courant.y <= y + edgeThreshold / 2) {
+				separateurY.add(courant);
+			}
+		}
+
+		if (separateurY.size() > 2) {
+			int max = 0;
+			Point sep1 = separateurY.get(0);
+			for (Point p : separateurY) {
+				if (neighbor(p, clone, edgeThreshold).size() > max) {
+					max = neighbor(p, clone, edgeThreshold).size();
+					sep1 = p;
+				}
+			}
+			max = 0;
+			Point sep2 = null;
+
+			ArrayList<Point> neighborSep1 = neighbor(sep1, separateurY, edgeThreshold);
+			ArrayList<Point> notNeighOfSepInY = new ArrayList<>();
+
+			for (Point p : neighborSep1) {
+				if (!separateurY.contains(p)) {
+					notNeighOfSepInY.add(p);
+				}
+			}
+			if (notNeighOfSepInY.size() != 0) {
+				sep2 = notNeighOfSepInY.get(0);
+				for (Point p : notNeighOfSepInY) {
+					if (neighbor(p, clone, edgeThreshold).size() > max) {
+						max = neighbor(p, clone, edgeThreshold).size();
+						sep2 = p;
+					}
+				}
+				resFinal.add(sep1);
+				resFinal.add(sep2);
+				
+				clone.remove(sep1);
+				clone.removeAll(neighbor(sep1, clone, edgeThreshold));
+				clone.remove(sep2);
+				clone.removeAll(neighbor(sep2, clone, edgeThreshold));
+				
+				ArrayList<Point> gauche = new ArrayList<>();
+				ArrayList<Point> droite = new ArrayList<>();
+				
+				for(Point p : clone) {
+					if(p.x<sep1.x)
+						//
+				}
+			}
+
+		}
+
+		return null;
 	}
 
 	public Point findMax(ArrayList<Point> graphe, int edgeThreshold) {
