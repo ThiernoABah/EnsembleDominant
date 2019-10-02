@@ -9,15 +9,27 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
+import algorithms.arbreCouvrant.*;
 
 public class DefaultTeam {
 	public ArrayList<Point> calculDominatingSet(ArrayList<Point> points, int edgeThreshold) {
 		// REMOVE >>>>>
-		// ArrayList<Point> result = gloutonNaif(points, edgeThreshold);
+		ArrayList<Point> result = gloutonNaif(points, edgeThreshold);
+		ArrayList<Point> meilleur = result;
+		for (int i = 0; i < 30; i++) {
+//			result = gloutonRandom(points, edgeThreshold);
+			System.out.print(i+" ");
+			System.out.println(meilleur.size());
+			result = tentaSteiner(points, result, edgeThreshold);
+			if (meilleur.size() >= result.size()) {
+				meilleur = result;
+			}
+		}
 
-		ArrayList<Point> result = separateur(points, edgeThreshold);
 		// System.out.println(isValid(points, result, edgeThreshold));
 		// System.out.println(result.size());
 		return result;
@@ -42,6 +54,168 @@ public class DefaultTeam {
 			res.add(p);
 		}
 		return res;
+	}
+	
+	public ArrayList<Point> gloutonRandom(ArrayList<Point> points, int edgeThreshold) {
+		ArrayList<Point> res = new ArrayList<>();
+		@SuppressWarnings("unchecked")
+		ArrayList<Point> clonePoints = (ArrayList<Point>) points.clone();
+
+		while (!isValid(points, res, edgeThreshold)) {
+			if (clonePoints.size() <= 0) {
+				break;
+			}
+			Random r = new Random(); int numeroAleatoire = r.nextInt(clonePoints.size());
+			Point p = clonePoints.get(numeroAleatoire);
+
+			for (Point n : neighbor(p, points, edgeThreshold)) {
+				if (!res.contains(n))
+					clonePoints.remove(n);
+			}
+			clonePoints.remove(p);
+			res.add(p);
+		}
+		return res;
+	}
+
+	public ArrayList<Point> tentaSteiner(ArrayList<Point> points, ArrayList<Point> sol, int edgeTreshold) {
+		Steiner steiner = new Steiner();
+		ArrayList<Point> res = steiner.calculSteiner(points, edgeTreshold, sol);
+
+		ArrayList<Point> voisin = new ArrayList<>();
+		for (Point p : res) {
+			if (!sol.contains(p)) {
+				voisin.add(p);
+			}
+		}
+
+		return improve(points, sol, voisin, edgeTreshold);
+	}
+
+	public ArrayList<Point> improve(ArrayList<Point> points, ArrayList<Point> sol, ArrayList<Point> voisinsInteressant,
+			int edgeThreshold) {
+		ArrayList<Point> res = (ArrayList<Point>) sol.clone();
+		ArrayList<Point> voisins = (ArrayList<Point>) voisinsInteressant.clone();
+
+		int avant = sol.size();
+		Collections.shuffle(res);
+		for (Point current : sol) {
+			Collections.shuffle(res);
+			for (Point second : sol) {
+				if (current.equals(second))
+					continue;
+				Collections.shuffle(res);
+				Collections.shuffle(voisins);
+				for (Point v : voisins) {
+					if (v.distance(current) <= edgeThreshold && v.distance(second) <= edgeThreshold) {
+						res.remove(current);
+						res.remove(second);
+						res.add(v);
+						if (isValid(points, res, edgeThreshold)) {
+							if (res.size() < avant) {
+								return res;
+							}
+						} else {
+							res.remove(v);
+							res.add(current);
+							res.add(second);
+						}
+					}
+				}
+			}
+		}
+
+		return res;
+	}
+
+	public ArrayList<Point> commonNeigh(Point a, Point b, ArrayList<Point> points, int edgeThreshold) {
+		ArrayList<Point> voisinA = neighbor(a, points, edgeThreshold);
+		ArrayList<Point> voisinB = neighbor(b, points, edgeThreshold);
+		voisinA.retainAll(voisinB);
+		return voisinA;
+	}
+
+	@SuppressWarnings("unchecked")
+	public ArrayList<Point> separateurTest2(ArrayList<Point> points, int edgeThreshold) {
+		ArrayList<Point> resFinal = new ArrayList<>();
+		ArrayList<Point> clone = (ArrayList<Point>) points.clone();
+
+		for (Point p : points) {
+			if (neighbor(p, clone, edgeThreshold).size() == 0) {
+				resFinal.add(p);
+				clone.remove(p);
+			}
+		}
+		if (clone.size() == 0) {
+			return resFinal;
+		}
+		if (clone.size() == 1) {
+			return clone;
+		}
+		if (clone.size() == 2) {
+			if (clone.get(0).distance(clone.get(1)) <= edgeThreshold) {
+				resFinal.add(clone.get(0));
+				return resFinal;
+			} else {
+				return clone;
+			}
+		}
+		int ymax = 0;
+		for (Point p : clone) {
+			if (p.y > ymax) {
+				ymax = p.y;
+			}
+		}
+
+		for (int y = 0; y < ymax; y = y + edgeThreshold) {
+			ArrayList<Point> tmp = new ArrayList<>();
+			for (Point p : clone) {
+				if (p.y >= y && p.y <= ymax) {
+					tmp.add(p);
+				}
+			}
+			if (tmp.size() == 0) {
+				continue;
+			}
+			Point max = tmp.get(0);
+			resFinal.add(max);
+			clone.remove(max);
+			clone.removeAll(neighbor(max, clone, edgeThreshold));
+		}
+
+		return resFinal;
+
+		// int m = 0;
+		// Point max = clone.get(0);
+		// for (Point p : clone) {
+		// if (neighbor(p, clone, edgeThreshold).size() > m) {
+		// m = neighbor(p, clone, edgeThreshold).size();
+		// max = p;
+		// }
+		// }
+		//
+		// resFinal.add(max);
+		//
+		// clone.remove(max);
+		// clone.removeAll(neighbor(max, clone, edgeThreshold));
+		//
+		// ArrayList<Point> gauche = new ArrayList<>();
+		// ArrayList<Point> droite = new ArrayList<>();
+		//
+		// int g = max.x;
+		//
+		// for (Point p : clone) {
+		// if (p.x < g) {
+		// gauche.add(p);
+		// } else {
+		// droite.add(p);
+		// }
+		// }
+		//
+		// resFinal.addAll(separateurTest2(gauche, edgeThreshold));
+		// resFinal.addAll(separateurTest2(droite, edgeThreshold));
+		//
+		// return resFinal;
 	}
 
 	public ArrayList<Point> separateur(ArrayList<Point> points, int edgeThreshold) {
@@ -157,23 +331,46 @@ public class DefaultTeam {
 		return resFinal;
 	}
 
+	@SuppressWarnings("unchecked")
 	public ArrayList<Point> separateurTest(ArrayList<Point> points, int edgeThreshold) {
+
 		int x = 0;
 		int y = 0;
-
 		ArrayList<Point> resFinal = new ArrayList<>();
 		ArrayList<Point> clone = (ArrayList<Point>) points.clone();
 
-		for (int i = 0; i < points.size(); i++) {
-			Point courant = points.get(i);
+		for (Point p : points) {
+			if (neighbor(p, clone, edgeThreshold).size() == 0) {
+				resFinal.add(p);
+				clone.remove(p);
+			}
+		}
+		if (clone.size() == 0) {
+			return resFinal;
+		}
+		if (clone.size() == 1) {
+			return clone;
+		}
+		if (clone.size() == 2) {
+			if (clone.get(0).distance(clone.get(1)) <= edgeThreshold) {
+				resFinal.add(clone.get(0));
+				return resFinal;
+			} else {
+				return clone;
+			}
+		}
+
+		for (int i = 0; i < clone.size(); i++) {
+			Point courant = clone.get(i);
 			x += courant.x;
 		}
-		x /= points.size();
+		x = x / clone.size();
 
 		ArrayList<Point> separateurX = new ArrayList<>();
-		for (int i = 0; i < points.size(); i++) {
-			Point courant = points.get(i);
-			if (x - edgeThreshold / 2 <= courant.x && courant.x <= x + edgeThreshold / 2) {
+
+		for (int i = 0; i < clone.size(); i++) {
+			Point courant = clone.get(i);
+			if (x - (edgeThreshold / 2) <= courant.x && courant.x <= x + (edgeThreshold / 2)) {
 				separateurX.add(courant);
 				y += courant.y;
 			}
@@ -183,13 +380,18 @@ public class DefaultTeam {
 			return null;
 		}
 
-		y /= separateurX.size();
+		y = y / separateurX.size();
+
 		ArrayList<Point> separateurY = new ArrayList<>();
-		for (int i = 0; i < points.size(); i++) {
-			Point courant = points.get(i);
+		for (int i = 0; i < clone.size(); i++) {
+			Point courant = clone.get(i);
 			if (y - edgeThreshold / 2 <= courant.y && courant.y <= y + edgeThreshold / 2) {
 				separateurY.add(courant);
 			}
+		}
+
+		if (separateurY.size() == 0 && clone.size() > 0) {
+			return gloutonNaif(clone, edgeThreshold);
 		}
 
 		if (separateurY.size() > 2) {
@@ -222,24 +424,60 @@ public class DefaultTeam {
 				}
 				resFinal.add(sep1);
 				resFinal.add(sep2);
-				
+
 				clone.remove(sep1);
 				clone.removeAll(neighbor(sep1, clone, edgeThreshold));
+
 				clone.remove(sep2);
 				clone.removeAll(neighbor(sep2, clone, edgeThreshold));
-				
+
 				ArrayList<Point> gauche = new ArrayList<>();
 				ArrayList<Point> droite = new ArrayList<>();
-				
-				for(Point p : clone) {
-					if(p.x<sep1.x)
-						//
+				int g = 0;
+				// int d = 0;
+				if (sep1.x <= sep2.x) {
+					g = sep1.x;
+					// d = sep2.x;
+				} else {
+					g = sep2.x;
+					// d = sep1.x;
 				}
+
+				for (Point p : clone) {
+					if (p.x < g) {
+						gauche.add(p);
+					} else {
+						droite.add(p);
+					}
+				}
+				resFinal.addAll(separateurTest(gauche, edgeThreshold));
+				resFinal.addAll(separateurTest(droite, edgeThreshold));
+
+			} else {
+
+				resFinal.add(sep1);
+				System.out.println(clone.size());
+				clone.remove(sep1);
+				clone.removeAll(neighbor(sep1, clone, edgeThreshold));
+				System.out.println(clone.size());
+				ArrayList<Point> gauche = new ArrayList<>();
+				ArrayList<Point> droite = new ArrayList<>();
+				int g = sep1.x;
+
+				for (Point p : clone) {
+					if (p.x < g) {
+						gauche.add(p);
+					} else {
+						droite.add(p);
+					}
+				}
+				resFinal.addAll(separateurTest(gauche, edgeThreshold));
+				resFinal.addAll(separateurTest(droite, edgeThreshold));
 			}
 
 		}
 
-		return null;
+		return resFinal;
 	}
 
 	public Point findMax(ArrayList<Point> graphe, int edgeThreshold) {
@@ -270,15 +508,13 @@ public class DefaultTeam {
 		if (sol.size() == 0) {
 			return false;
 		}
+		ArrayList<Point> result = (ArrayList<Point>) points.clone();
 
-		Set<Point> res = new HashSet<>();
-		for (Point p : points) {
-			for (Point n : neighbor(p, points, edgeThreshold)) {
-				if (!sol.contains(n))
-					res.add(n);
-			}
+		for (Point p : sol) {
+			result.remove(p);
+			result.removeAll(neighbor(p, points, edgeThreshold));
 		}
-		return res.size() + sol.size() == points.size();
+		return result.size() == 0;
 	}
 
 	public int score(ArrayList<Point> points) {
